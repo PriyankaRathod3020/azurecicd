@@ -5,18 +5,17 @@
 trigger:
  paths:
    include:
-     - result/*
-
+     - vote/*
 
 resources:
 - repo: self
 
 variables:
   # Container registry service connection established during pipeline creation
-  dockerRegistryServiceConnection: 'number'
-  imageRepository: 'resultapp'
-  containerRegistry: 'azurecicdcontainerregistery.azurecr.io'
-  dockerfilePath: '$(Build.SourcesDirectory)/result/Dockerfile'
+  dockerRegistryServiceConnection: 'e411be24-dc1c-472a-a053-6a538253481f'
+  imageRepository: 'voteapplication'
+  containerRegistry: 'acricd.azurecr.io'
+  dockerfilePath: '$(Build.SourcesDirectory)/vote/Dockerfile'
   tag: '$(Build.BuildId)'
 
 pool:
@@ -24,7 +23,7 @@ pool:
 
 stages:
 - stage: Build
-  displayName: Build
+  displayName: Build stage
   jobs:
   - job: Build
     displayName: Build
@@ -35,10 +34,10 @@ stages:
         containerRegistry: '$(dockerRegistryServiceConnection)'
         repository: '$(imageRepository)'
         command: 'build'
-        Dockerfile: 'result/Dockerfile'
+        Dockerfile: 'vote/Dockerfile'
         tags: '$(tag)'
 - stage: Push
-  displayName: Push
+  displayName: Push stage
   jobs:
   - job: Push
     displayName: Push
@@ -50,13 +49,18 @@ stages:
         repository: '$(imageRepository)'
         command: 'push'
         tags: '$(tag)'
-- stage: Update
-  displayName: Update
+- stage: update
+  displayName: update stage
   jobs:
-  - job: Update
-    displayName: Update
+  - job: update
+    displayName: update
     steps:
+    - script: |
+        sudo apt-get update -y
+        sudo apt-get install dos2unix -y
+        dos2unix 'script/updatek8smanifest.sh'
     - task: ShellScript@2
+      displayName: update k8s deployment file
       inputs:
-        scriptPath: 'scripts/updatek8smanifest.sh'
-        args: 'result $(imageRepository) $(tag)'
+        scriptPath: 'script/updatek8smanifest.sh'
+        args: 'vote $(imageRepository) $(tag)'
